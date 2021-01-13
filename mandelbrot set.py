@@ -93,8 +93,8 @@ pg.init()
 pg.display.set_caption("Mandelbrot set")
 pg.font.init()
 
-xmax = 1600
-ymax = 840
+xmax = 1500
+ymax = 820
 scr = pg.display.set_mode((xmax, ymax))
 
 black = (0, 0, 0)
@@ -139,8 +139,8 @@ def colour(z, iter):
         # r, g = min(255, iter*10/(zoom/2.5)), min(255, iter*20/(zoom/2.5))
         # b = min(255, iter*30/(zoom/2.5))
         # return r, g, b, iter
-        r, g = min(255, iter * 4), min(255, iter * 8)
-        b = min(255, iter * 14)
+        r, g = min(255, iter * 2), min(255, iter * 4)
+        b = min(255, iter * 7)
         return r, g, b, iter
         # return 0, 10, 200, iter
     # else:
@@ -155,8 +155,8 @@ def colour(z, iter):
 
 # Z is the complex number array
 # Z = (C[0]-2*xmax/3)/(xmax/3)+(C[1]-ymax/2)*1j/(ymax/2)
-center = -1.282, 0.068
-zoom = 400
+center = -1.28, 0.0572
+zoom = 1200
 Z = generate_complex_plane(center[0], center[1], C, zoom)
 
 vfunc1 = np.vectorize(iterator)
@@ -217,7 +217,7 @@ while running:
     for event in pg.event.get():
         if event.type == pg.MOUSEBUTTONUP:
             new_center = pg.mouse.get_pos()
-            pg.image.save(scr, "test.jpeg")
+            pg.image.save(scr, str(timeit.default_timer())+".jpeg")
             print("heh")
 
             # play = play * -1
@@ -232,3 +232,4 @@ while running:
             running = False
     pg.display.flip()
 pg.quit()
+# test
