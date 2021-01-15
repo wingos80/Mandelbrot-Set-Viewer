@@ -9,7 +9,7 @@ pg.init()
 pg.display.set_caption("Mandelbrot set")
 pg.font.init()
 
-xmax = 2144
+xmax = 2140
 ymax = 1206
 scr = pg.display.set_mode((xmax, ymax))
 
@@ -28,8 +28,8 @@ def generate_complex_plane(x, y, grid, zoom):
 def iterator(z_0, c):
     # the mandelbrot set equation
     z = z_0
-    for i in range(6):
-        # z = abs(z.real)+abs(z.imag)*1j
+    for i in range(3):
+        z = abs(z.real)+abs(z.imag)*1j
         z = z*z + c
     # if y > 1:
     #     # r = min(255, 255 * max(0, 1.5 * (-math.cos(math.pi * y/99999))))
@@ -55,12 +55,12 @@ def colour(z, iter):
         # r, g = min(255, iter*10/(zoom/2.5)), min(255, iter*20/(zoom/2.5))
         # b = min(255, iter*30/(zoom/2.5))
         # return r, g, b, iter
-        # r, g = min(255, iter * 8), min(255, iter * 13)
-        # b = min(255, iter * 25)
-        # return r, g, b, iter
-        r, g = min(255, iter * 0.8), min(255, iter * 1.2)
-        b = min(255, iter * 3)
+        r, g = min(255, iter * 8), min(255, iter * 13)
+        b = min(255, iter * 25)
         return r, g, b, iter
+        # r, g = min(255, iter * 0.8), min(255, iter * 1.2)
+        # b = min(255, iter * 3)
+        # return r, g, b, iter
         # return 0, 10, 200, iter
     # else:
     #     return 0, 0, 255
@@ -74,8 +74,8 @@ def colour(z, iter):
 
 # Z is the complex number array
 # Z = (C[0]-2*xmax/3)/(xmax/3)+(C[1]-ymax/2)*1j/(ymax/2)
-center = -1.28, 0.0572
-zoom = 12000
+center = -1.62, 0
+zoom = 8
 Z = generate_complex_plane(center[0], center[1], C, zoom)
 
 vfunc1 = np.vectorize(iterator)
@@ -114,7 +114,7 @@ while running:
 
     itr += 1
     print(itr)
-    if itr > 25 and itr % 3 == 0:
+    if itr > 9 and itr % 3 == 0:
         if itr % 10 == 0:
             pg.image.save(scr, str(timeit.default_timer()) + str(center) + str(zoom) + ".tiff")
         else:
@@ -158,4 +158,3 @@ while running:
         running = False
     pg.display.flip()
 pg.quit()
-# test
