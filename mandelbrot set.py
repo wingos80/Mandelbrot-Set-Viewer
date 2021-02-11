@@ -4,14 +4,18 @@ import numpy as np
 pg.init()
 pg.display.set_caption("Mandelbrot set")
 
-xmax = 1080
-ymax = 720
+xmax = 1080  # width of the window/map
+ymax = 720  # height of the window/map
 scr = pg.display.set_mode((xmax, ymax))
 
-rf, gf, bf = 0.7, 1.04, 2.8
-iteration_per_call = 6
-center = -1.28, 0.0572
-zoom = 1200
+rf, gf, bf = 12, 12, 40  # the colour factors for rgb, these factors determine how much is added to each colour
+# channel after 1 frame or 1 "game" loop. See function colour for how these var are used.
+
+iteration_per_call = 6  # the number of times the code runs the mandelbrot iterative equation: z_n+1 = (z_n)**2 + c,
+# for each frame or each game loop
+
+center = -0.5, 0  # the coordinates for the centre of the window
+zoom = 1  # level of zoom
 
 C = np.mgrid[0:xmax, 0:ymax]
 empty_arr = np.zeros((xmax, ymax))
@@ -55,7 +59,7 @@ vfunc2 = np.vectorize(colour)
 explody_arr = vfunc1(empty_arr, Z)
 
 be = vfunc2(explody_arr, empty_arr)
-disp_arr = np.stack((be[0], be[1], be[2]), axis=-1)
+# disp_arr = np.stack((be[0], be[1], be[2]), axis=-1)
 
 # Main Loop!!
 running = True
@@ -64,8 +68,8 @@ while running:
     explody_arr = vfunc1(explody_arr, Z)
     be = vfunc2(explody_arr, be[3])
 
-    dis_arr = np.stack((be[0], be[1], be[2]), axis=-1)
-    pg.surfarray.blit_array(scr, dis_arr)
+    disp_arr = np.stack((be[0], be[1], be[2]), axis=-1)  # the array of pixels to be displayed
+    pg.surfarray.blit_array(scr, disp_arr)
 
     itr += 1
     print(itr)
