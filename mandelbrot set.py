@@ -1,6 +1,6 @@
 import pygame as pg
 import numpy as np
-import os, timeit
+import os,timeit
 
 pg.init()
 pg.display.set_caption("Mandelbrot set")
