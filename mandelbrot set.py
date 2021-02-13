@@ -5,14 +5,14 @@ import os,timeit
 pg.init()
 pg.display.set_caption("Mandelbrot set")
 
-xmax = 1080  # width of the window/map
-ymax = 720  # height of the window/map
+xmax = 5690  # width of the window/map
+ymax = 3200  # height of the window/map
 scr = pg.display.set_mode((xmax, ymax))
 
 rf, gf, bf = 1, 2, 4  # the colour factors for rgb, these factors determine how much is added to each colour
 # channel after 1 frame or 1 "game" loop. See function colour for how these var are used.
 
-iteration_per_call = 3  # the number of times the code runs the mandelbrot iterative equation: z_n+1 = (z_n)**2 + c,
+iteration_per_call = 6  # the number of times the code runs the mandelbrot iterative equation: z_n+1 = (z_n)**2 + c,
 # for each frame or each game loop
 
 center = -1.28, 0.0572  # the coordinates for the centre of the window
@@ -60,26 +60,26 @@ vfunc2 = np.vectorize(colour)
 explody_arr = vfunc1(empty_arr, Z)
 
 be = vfunc2(explody_arr, empty_arr, empty_arr)
-all_iters_array = be[3].flatten()
-lowest_iter = all_iters_array.min()
-lowest_iter_array = empty_arr+all_iters_array.min()
+lowest_iter_array = empty_arr+be[3].min()
 # disp_arr = np.stack((be[0], be[1], be[2]), axis=-1)
 
 # Main Loop!!
 running = True
 play = 1
 while running:
+    toc = timeit.default_timer()
+
     explody_arr = vfunc1(explody_arr, Z)
     be = vfunc2(explody_arr, be[3], lowest_iter_array)
-    all_iters_array = be[3].flatten()
-    lowest_iter = all_iters_array.min()
-    lowest_iter_array = empty_arr+all_iters_array.min()
+    lowest_iter_array = empty_arr+be[3].min()
 
     disp_arr = np.stack((be[0], be[1], be[2]), axis=-1)  # the array of pixels to be displayed
     pg.surfarray.blit_array(scr, disp_arr)
 
+    tic = timeit.default_timer()
+
     itr += 1
-    print(itr)
+    print(itr, str(tic-toc))
     if itr == 12:
         # Making a directory to put pictures in
         dir_name = str(xmax) + ' x ' + str(ymax) + ', ' + str(iteration_per_call) + ' iterations, ' + str(
