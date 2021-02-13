@@ -1,22 +1,22 @@
 import pygame as pg
 import numpy as np
 import os,timeit
-
+# giteatest
 pg.init()
 pg.display.set_caption("Mandelbrot set")
 
-xmax = 5690  # width of the window/map
-ymax = 3200  # height of the window/map
+xmax = 1080  # width of the window/map
+ymax = 720  # height of the window/map
 scr = pg.display.set_mode((xmax, ymax))
 
 rf, gf, bf = 1, 2, 4  # the colour factors for rgb, these factors determine how much is added to each colour
 # channel after 1 frame or 1 "game" loop. See function colour for how these var are used.
 
-iteration_per_call = 6  # the number of times the code runs the mandelbrot iterative equation: z_n+1 = (z_n)**2 + c,
+iteration_per_call = 1  # the number of times the code runs the mandelbrot iterative equation: z_n+1 = (z_n)**2 + c,
 # for each frame or each game loop
 
-center = -1.28, 0.0572  # the coordinates for the centre of the window
-zoom = 1200  # level of zoom
+center = -1.25, 0.055  # the coordinates for the centre of the window
+zoom = 111  # level of zoom
 
 C = np.mgrid[0:xmax, 0:ymax]
 empty_arr = np.zeros((xmax, ymax))
@@ -80,19 +80,19 @@ while running:
 
     itr += 1
     print(itr, str(tic-toc))
-    if itr == 12:
-        # Making a directory to put pictures in
-        dir_name = str(xmax) + ' x ' + str(ymax) + ', ' + str(iteration_per_call) + ' iterations, ' + str(
-            rf) + ' ' + str(gf) + ' ' + str(bf) + ', ' + str(center) + ', ' + str(zoom)
-        current_directory = os.getcwd()
-        final_directory = os.path.join(current_directory, dir_name)
-        if not os.path.exists(final_directory):
-            os.makedirs(final_directory)
-    if itr > 12 and itr % 3 == 0:
-        if itr % 10 == 0:
-            pg.image.save(scr, final_directory+'/'+str(timeit.default_timer()) + ".tiff")
-        else:
-            pg.image.save(scr, final_directory+'/'+str(timeit.default_timer()) + ".png")
+    # if itr == 12:
+    #     # Making a directory to put pictures in
+    #     dir_name = str(xmax) + ' x ' + str(ymax) + ', ' + str(iteration_per_call) + ' iterations, ' + str(
+    #         rf) + ' ' + str(gf) + ' ' + str(bf) + ', ' + str(center) + ', ' + str(zoom)
+    #     current_directory = os.getcwd()
+    #     final_directory = os.path.join(current_directory, dir_name)
+    #     if not os.path.exists(final_directory):
+    #         os.makedirs(final_directory)
+    # if itr > 12 and itr % 3 == 0:
+    #     if itr % 10 == 0:
+    #         pg.image.save(scr, final_directory+'/'+str(timeit.default_timer()) + ".tiff")
+    #     else:
+    #         pg.image.save(scr, final_directory+'/'+str(timeit.default_timer()) + ".png")
 
     # quit event
     for event in pg.event.get():
