@@ -1,6 +1,7 @@
 import pygame as pg
 import numpy as np
-import os,timeit
+import os,timeit, time
+from multiprocessing import Process, current_process, Pool
 # giteatest
 pg.init()
 pg.display.set_caption("Mandelbrot set")
@@ -9,14 +10,14 @@ xmax = 1080  # width of the window/map
 ymax = 720  # height of the window/map
 scr = pg.display.set_mode((xmax, ymax))
 
-rf, gf, bf = 1, 2, 4  # the colour factors for rgb, these factors determine how much is added to each colour
+rf, gf, bf = 2, 3, 5  # the colour factors for rgb, these factors determine how much is added to each colour
 # channel after 1 frame or 1 "game" loop. See function colour for how these var are used.
 
-iteration_per_call = 1  # the number of times the code runs the mandelbrot iterative equation: z_n+1 = (z_n)**2 + c,
+iteration_per_call = 6  # the number of times the code runs the mandelbrot iterative equation: z_n+1 = (z_n)**2 + c,
 # for each frame or each game loop
 
-center = -1.25, 0.055  # the coordinates for the centre of the window
-zoom = 111  # level of zoom
+zoom = 68  # level of zoom
+center = -1.405, 1/zoom-0.002  # the coordinates for the centre of the window
 
 C = np.mgrid[0:xmax, 0:ymax]
 empty_arr = np.zeros((xmax, ymax))
@@ -48,9 +49,40 @@ def colour(z, iter, lowest_iter):
         # r = min(255, 255 * max(0, 1.5 * (-math.cos(math.pi * iter*10))))
         # g = min(255, 255 * (1.5 * math.sin(math.pi * iter*10)))
         # b = min(255, 255 * max(0, 1.5 * math.cos(math.pi * iter/10)))
-        r, g = min(255, (iter-lowest_iter) * rf), min(255, (iter-lowest_iter) * gf)
-        b = min(255, (iter-lowest_iter) * bf)
+        multiplier = -210/(1+np.exp(iter/3.4-6))+210+0.003*iter**1.8
+        # r, g = min(255, (iter-lowest_iter) * rf), min(255, (iter-lowest_iter) * gf)
+        # b = min(255, (iter-lowest_iter) * bf)
+        r, g = min(255, multiplier* rf), min(255, multiplier * gf)
+        b = min(255, multiplier * bf)
         return r, g, b, iter
+
+
+def vfunc1_mp(explody_arr, Z):
+    start_time = time.time()
+    p = Pool()
+    result = p.map(vfunc1, (explody_arr, Z))
+
+    p.close()
+    p.join()
+
+    end_time = time.time() - start_time
+    print(f"{end_time} seconds using multiprocessing")
+
+    return result
+
+
+def vfunc2_mp(explody_arr, be, lowest_iter_array):
+    start_time = time.time()
+    p = Pool()
+    result = p.map(vfunc2, (explody_arr, be, lowest_iter_array))
+
+    p.close()
+    p.join()
+
+    end_time = time.time() - start_time
+    print(f"{end_time} seconds using multiprocessing")
+
+    return result
 
 
 Z = generate_complex_plane(center[0], center[1], C, zoom)
@@ -71,6 +103,8 @@ while running:
 
     explody_arr = vfunc1(explody_arr, Z)
     be = vfunc2(explody_arr, be[3], lowest_iter_array)
+    # explody_arr = vfunc1_mp(explody_arr, Z)
+    # be = vfunc2_mp(explody_arr, be[3], lowest_iter_array)
     lowest_iter_array = empty_arr+be[3].min()
 
     disp_arr = np.stack((be[0], be[1], be[2]), axis=-1)  # the array of pixels to be displayed
