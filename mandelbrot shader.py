@@ -4,37 +4,37 @@ from OpenGL.GLUT import *
 from OpenGL.GL.shaders import compileProgram, compileShader
 import numpy as np
 
+file1 = open("MyFile.txt", "w")
+file1.close()
 # viewer parameters
-xmax, ymax = 1920.0, 1060.0
-
-center_xt, center_yt, zoom = -0.5, 0.0, 1.01
-center_x, center_y = center_xt, center_yt
-wx = 4
-wy = wx * ymax / xmax
+xmax, ymax = 1920.0, 1060.0  # Width and height (respectively) of display window
+center_xt, center_yt, zoomt = -0.5, 0.0, 1.01  # Target center and target zoom
+center_x, center_y, zoom = center_xt, center_yt, zoomt  # Actual center and actual zoom
+wx = 4  # Width of complex plane displayed
+wy = wx * ymax / xmax  # Height of complex plane displayed
+newpos = [0, 0]  # Mouse pixel coordinate
 zoomin, zoomout, moveup, movedown, moveleft, moveright = False, False, False, False, False, False
-newpos = [0, 0]
-windowc = [xmax / 2, ymax / 2]
 
 
-def mouse_coord(xpos, ypos):
-    global newpos
-    newpos = [xpos, ypos + 16]
-
-
+# making all the glfw callback functions for keyboard and mouse inputs
 def mouse_button_clb(window, button, action, mode):
-    global center_xt, center_yt, newpos, windowc
+    global center_xt, center_yt, newpos
     if button == glfw.MOUSE_BUTTON_LEFT and action == glfw.PRESS:
         center_xt += (newpos[0] / xmax - 0.5) * wx / zoom
         center_yt -= (newpos[1] / ymax - 0.5) * wy / zoom
-        print(newpos)
 
 
 def cursor_pos_clb(window, xpos, ypos):
     mouse_coord(xpos, ypos)
 
 
-def mscamera(x, y):
-    windowc = [xmax / 2, ymax / 2]
+def scroll_clb(window, xoffset, yoffset):
+    global zoomin, zoomout
+    pass
+    # if int(yoffset) > 0.5:
+    #     zoomin = True
+    # elif int(yoffset) < -0.5:
+    #     zoomout = True
 
 
 def key_input_clb(window, key, scancode, action, mode):
@@ -73,38 +73,72 @@ def key_input_clb(window, key, scancode, action, mode):
     #     moveright = False
 
 
+# making all the keyboard and mouse actions
 def kbcamera():
+    """
+    keyboard controls for camera, sets the zoom levels by q and e keys for zooming in and out respectively
+    :return:
+    """
     global center_x, center_y, zoom, zoomin, zoomout, moveup, movedown, moveleft, moveright
     if zoomin:
-        zoom *= 1.1
+        zoom *= 1.02
         # zoomin = False
     if zoomout:
-        zoom *= 1 / 1.1
+        zoom *= 1 / 1.02
         # zoomout = False
-    if moveup:
-        center_yt += move_size
-        # moveup = False
-    if movedown:
-        center_yt -= move_size
-        # movedown = False
-    if moveright:
-        center_xt += move_size
-        # moveright = False
-    if moveleft:
-        center_xt -= move_size
-        # moveleft = False
+    # if moveup:
+    #     center_yt += move_size
+    #     # moveup = False
+    # if movedown:
+    #     center_yt -= move_size
+    #     # movedown = False
+    # if moveright:
+    #     center_xt += move_size
+    #     # moveright = False
+    # if moveleft:
+    #     center_xt -= move_size
+    #     # moveleft = False
+
+
+def mouse_coord(xpos, ypos):
+    """
+    setting the mouse coordinates every frame
+    :param xpos:
+    :param ypos:
+    :return:
+    """
+    global newpos
+    newpos = [xpos, ypos + 16]
 
 
 def mscamera():
-    global center_x, center_y
+    """
+    mouse controls for camera, moving the center of the window to where user clicks on the window
+    :return:
+    """
+    global center_x, center_y, zoomt, zoom, zoomin, zoomout
 
     dx = center_xt - center_x
     dy = center_yt - center_y
 
-    center_x += dx * 0.02
-    center_y += dy * 0.02
+    center_x += dx * 0.08
+    center_y += dy * 0.08
+    # if zoomin:
+    #     zoomt *= 1.2
+    #     # zoomin = False
+    # elif zoomout:
+    #     zoomt *= 1/1.2
+    #     # zoomout = False
+    #
+    # dz = zoomt - zoom
+    # print(dz, zoomt)
+    # zoom += dz * 0.01
+    # if dz < (0.1 * zoomt):
+    #     zoomt = zoom
 
 
+# glsl code for vertex shader, the vertex shader is responsible for setting the vertex properties on screen,
+# and for passing the out data to the fragment shader
 vertex_src = """
 # version 400
 in vec3 a_position;
@@ -123,6 +157,7 @@ void main()
 }
 """
 
+# glsl code for fragment shader, the fragment shader is responsible for colouring each and every pixel on the window
 fragment_src = """
 # version 400
 in vec2 scr_dim;
@@ -164,15 +199,27 @@ void main()
     }
     int temp_threshold = itr_limit*18;
     converged = converged/4.0;
-    float color = 0.8*itr/itr_limit*int(itr<temp_threshold)+converged*int(itr>itr_limit);
+    float color = 1.0*itr/itr_limit*int(itr<temp_threshold)+converged*int(itr>itr_limit);
 
 
     if (xy.x > 959 && xy.x < 961)
-    {
-        out_color = vec4(1.0, 0.0, 0.0, 1.0);
+    {   
+        if (xy.y > 529 && xy.y < 551)
+        {
+            out_color = vec4(1.0, 0.0, 0.0, 1.0);
+        } else
+        {
+        out_color = vec4(0.2*color, 0.4*color, 0.8*color, 1.0);
+        }
     } else if (xy.y > 539 && xy.y < 541)
-    {
-        out_color = vec4(1.0, 0.0, 0.0, 1.0);
+    {   
+        if (xy.x > 949 && xy.x < 971)
+        {
+            out_color = vec4(1.0, 0.0, 0.0, 1.0);
+        } else
+        {
+        out_color = vec4(0.2*color, 0.4*color, 0.8*color, 1.0);
+        }
     } else 
     {
         out_color = vec4(0.2*color, 0.4*color, 0.8*color, 1.0);
@@ -193,39 +240,46 @@ if not window:
     glfw.terminate()
     raise Exception("glfw window can not be created!")
 
-# set window's position
+# set window's position on screen
 glfw.set_window_pos(window, 0, 34)
 glfw.make_context_current(window)
+
+# set Vsync to be zero so frame time can go lower than 16.66ms
 glfw.swap_interval(0)
 
+# setting all glfw input callbacks
 glfw.set_key_callback(window, key_input_clb)
 glfw.set_cursor_pos_callback(window, cursor_pos_clb)
 glfw.set_mouse_button_callback(window, mouse_button_clb)
+glfw.set_scroll_callback(window, scroll_clb)
 
+# compiling and using shader programs
 shader = compileProgram(compileShader(vertex_src, GL_VERTEX_SHADER), compileShader(fragment_src, GL_FRAGMENT_SHADER))
-
 glUseProgram(shader)
 
+# frame time variables
 frame_times = [0, 0]
+
 # the main application loop
 while not glfw.window_should_close(window):
-    move_size = wy / zoom * 0.005
+    # move_size = wy/zoom * 0.005
 
-    tic = timeit.default_timer()
+    tic = timeit.default_timer()  # frame timer start
 
-    # setting shader parameters and objects
-    vertices = [-1.0, 1.0, 0.0,
-                11111111.0, 1.0, 0.0,
-                -1.0, -11111111.0, 0.0,
-                xmax, ymax,  # width and height of glfw window
-                center_x, center_y, zoom,  # complex coordinate of center of complex plane, level of zoom
-                wx, wy]  # width and height of complex plane
+    # setting shader inputs
+    shader_inputs = [-1.0, 1.0, 0.0,  # vertex 1 position
+                     1111111111.0, 1.0, 0.0,  # vertex 2 position
+                     -1.0, -1111111111.0, 0.0,  # vertex 3 position
+                     xmax, ymax,  # width and height of glfw window
+                     center_x, center_y, zoom,  # complex coordinate of center of complex plane, level of zoom
+                     wx, wy]  # width and height of complex plane
 
-    vertices = np.array(vertices, dtype=np.float32)
+    shader_inputs = np.array(shader_inputs, dtype=np.float32)
     VBO = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, VBO)
-    glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
+    glBufferData(GL_ARRAY_BUFFER, shader_inputs.nbytes, shader_inputs, GL_STATIC_DRAW)
 
+    # instructions to opengl what the input parameters are
     position = glGetAttribLocation(shader, "a_position")
     glEnableVertexAttribArray(position)
     glVertexAttribPointer(position, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
@@ -245,19 +299,23 @@ while not glfw.window_should_close(window):
     # game loop
     glfw.poll_events()
 
+    # running the camera functions to facilitate camera movement
     kbcamera()
     mscamera()
 
     glClear(GL_COLOR_BUFFER_BIT)
+
+    # drawing on the window
     glDrawArrays(GL_TRIANGLES, 0, 3)
     glfw.swap_buffers(window)
 
-    toc = timeit.default_timer()
+    toc = timeit.default_timer()  # frame timer end
 
-    # Calculate frame time
+    # calculate frame time
     frame_times[0] += toc - tic
     frame_times[1] += 1
 
+    # printing frame time averaged over 50 frames
     if frame_times[1] >= 50:
         print(f'frame time = {round(frame_times[0] / frame_times[1] * 1000, 2)}ms')
         frame_times[0], frame_times[1] = 0, 0
