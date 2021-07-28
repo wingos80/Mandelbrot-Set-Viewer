@@ -1,32 +1,34 @@
 import glfw, timeit
+from PIL import Image
 from OpenGL.GL import *
+from OpenGL.GLU import *
 from OpenGL.GLUT import *
 from OpenGL.GL.shaders import compileProgram, compileShader
 import numpy as np
 
-file1 = open("MyFile.txt", "w")
-file1.close()
-# viewer parameters
-xmax, ymax = 1920.0, 1060.0  # Width and height (respectively) of display window
-center_xt, center_yt, zoomt = -0.5, 0.0, 1.01  # Target center and target zoom
-center_x, center_y, zoom = center_xt, center_yt, zoomt  # Actual center and actual zoom
-wx = 4  # Width of complex plane displayed
-wy = wx * ymax / xmax  # Height of complex plane displayed
-newpos = [0, 0]  # Mouse pixel coordinate
-zoomin, zoomout, moveup, movedown, moveleft, moveright = False, False, False, False, False, False
 
+file1 = open("to_draw.txt", "w")
+file1.write('hey \n')
+# viewer parameters
+xmax, ymax = 1920.0, 1080.0                                 # Width and height (respectively) of display window
+center_xt, center_yt, zoomt = -0.5, 0.0, 1.01               # Target center and target zoom
+center_x, center_y, zoom = center_xt, center_yt, zoomt      # Actual center and actual zoom
+wx = 4                                                      # Width of complex plane displayed
+wy = wx * ymax / xmax                                       # Height of complex plane displayed
+newpos = [0, 0]                                             # Mouse pixel coordinate
+maxitr, brightness = 256.0, 6.0                             # Maximum iteration, brightness
+zoomin, zoomout, moveup, movedown, moveleft, moveright, newmouse = False, False, False, False, False, False, False
 
 # making all the glfw callback functions for keyboard and mouse inputs
 def mouse_button_clb(window, button, action, mode):
-    global center_xt, center_yt, newpos
+    global center_xt, center_yt, newpos, newmouse
     if button == glfw.MOUSE_BUTTON_LEFT and action == glfw.PRESS:
-        center_xt += (newpos[0] / xmax - 0.5) * wx / zoom
-        center_yt -= (newpos[1] / ymax - 0.5) * wy / zoom
-
+        newmouse = True
+    if button == glfw.MOUSE_BUTTON_LEFT and action == glfw.RELEASE:
+        newmouse = False
 
 def cursor_pos_clb(window, xpos, ypos):
     mouse_coord(xpos, ypos)
-
 
 def scroll_clb(window, xoffset, yoffset):
     global zoomin, zoomout
@@ -38,7 +40,7 @@ def scroll_clb(window, xoffset, yoffset):
 
 
 def key_input_clb(window, key, scancode, action, mode):
-    global zoomin, zoomout, moveup, movedown, moveleft, moveright
+    global zoomin, zoomout, moveup, movedown, moveleft, moveright, maxitr, brightness
     # zoomin, zoomout, moveup, movedown, moveleft, moveright = False, False, False, False, False, False
     if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
         glfw.set_window_should_close(window, True)
@@ -51,6 +53,16 @@ def key_input_clb(window, key, scancode, action, mode):
         zoomout = True
     if key == glfw.KEY_Q and action == glfw.RELEASE:
         zoomout = False
+
+    if key == glfw.KEY_UP and action == glfw.PRESS:
+        maxitr += 16
+    if key == glfw.KEY_DOWN and action == glfw.PRESS:
+        maxitr -= 16
+
+    if key == glfw.KEY_RIGHT and action == glfw.PRESS:
+        brightness += 0.4
+    if key == glfw.KEY_LEFT and action == glfw.PRESS:
+        brightness -= 0.4
 
     # if key == glfw.KEY_W and action == glfw.PRESS:
     #     moveup = True
@@ -79,12 +91,15 @@ def kbcamera():
     keyboard controls for camera, sets the zoom levels by q and e keys for zooming in and out respectively
     :return:
     """
-    global center_x, center_y, zoom, zoomin, zoomout, moveup, movedown, moveleft, moveright
+    global center_x, center_y, zoom, zoomt, zoomin, zoomout, moveup, movedown, moveleft, moveright
+
+    dz = zoomt - zoom
+    zoom += dz*0.05
     if zoomin:
-        zoom *= 1.02
+        zoomt *= 1.02
         # zoomin = False
     if zoomout:
-        zoom *= 1 / 1.02
+        zoomt *= 1 / 1.02
         # zoomout = False
     # if moveup:
     #     center_yt += move_size
@@ -116,13 +131,19 @@ def mscamera():
     mouse controls for camera, moving the center of the window to where user clicks on the window
     :return:
     """
-    global center_x, center_y, zoomt, zoom, zoomin, zoomout
+    global center_x, center_y, zoomt, zoom, zoomin, zoomout, center_xt, center_yt
 
     dx = center_xt - center_x
     dy = center_yt - center_y
 
     center_x += dx * 0.08
     center_y += dy * 0.08
+
+    if newmouse:
+        center_xt += 0.02*(newpos[0] / xmax - 0.5) * wx / zoom
+        center_yt -= 0.02*(newpos[1] / ymax - 0.5) * wy / zoom
+        # print(13434)
+
     # if zoomin:
     #     zoomt *= 1.2
     #     # zoomin = False
@@ -144,16 +165,18 @@ vertex_src = """
 in vec3 a_position;
 in vec2 a_dims;
 in vec3 a_center_n_zoom;
-in vec2 wx_wy;
+in vec4 wx_wy_maxitr;
 out vec2 scr_dim;
 out vec3 center_n_zoom;
 out vec2 wx_wy2;
+out vec2 maxitr;
 void main()
 {
     gl_Position = vec4(a_position, 1.0);
     scr_dim = a_dims;
     center_n_zoom = a_center_n_zoom;
-    wx_wy2 = wx_wy;
+    wx_wy2 = vec2(wx_wy_maxitr.x, wx_wy_maxitr.y);
+    maxitr = vec2(wx_wy_maxitr.z, wx_wy_maxitr.w);
 }
 """
 
@@ -163,13 +186,15 @@ fragment_src = """
 in vec2 scr_dim;
 in vec3 center_n_zoom;
 in vec2 wx_wy2;
+in vec2 maxitr;
 out vec4 out_color;
 void main()
 {   
     int itr = 0;
-    int itr_limit = 256;
+    int itr_limit = int(maxitr.x);
+    float brightness = maxitr.y;
     float abs = 0.0;
-    float abs_lim = 5.0;
+    float abs_lim = 16.0;
     float converged = 0;
 
     float zoom = center_n_zoom.z;
@@ -177,13 +202,16 @@ void main()
     vec2 xy = vec2(gl_FragCoord.x, gl_FragCoord.y);
     vec2 z = vec2(0.0, 0.0);
     vec2 zt = vec2(0.0, 0.0);
-
-    for(int aae=0; aae<4; aae++)
+    
+    float color = 0.0;
+    vec4 clr_vec;
+    clr_vec.w = 0.0;
+    for(int aae=0; aae<2; aae++)
     {   
-        for(int bae=0; bae<4; bae++)
+        for(int bae=0; bae<2; bae++)
         {   
             vec2 aa = vec2(aae, bae);
-            vec2 c = ((xy-0.25+aa*0.125)/scr_dim-0.5)*wx_wy2/zoom+center;
+            vec2 c = ((xy-2.0+aa*2.0)/scr_dim-0.5)*wx_wy2/zoom+center;
 
             while (itr<itr_limit && abs<abs_lim)
             {   
@@ -194,13 +222,16 @@ void main()
                 abs = z.x*z.x + z.y*z.y;
                 itr++;
             }
-            converged = converged + int(abs<abs_lim);
+            converged = int(abs<abs_lim);
+            
+            clr_vec.x = clr_vec.x + 0.25*itr/itr_limit*int(itr<=itr_limit)+converged;
+            clr_vec.y = clr_vec.y + 0.7*itr/itr_limit*int(itr<=itr_limit)+converged;
+            clr_vec.z = clr_vec.z + 1.0*itr/itr_limit*int(itr<=itr_limit)+converged;
+            itr = 0;
         }
     }
-    int temp_threshold = itr_limit*18;
-    converged = converged/4.0;
-    float color = 1.0*itr/itr_limit*int(itr<temp_threshold)+converged*int(itr>itr_limit);
-
+    clr_vec = clr_vec/4*brightness;
+    clr_vec.w = 1.0;
 
     if (xy.x > 959 && xy.x < 961)
     {   
@@ -209,7 +240,7 @@ void main()
             out_color = vec4(1.0, 0.0, 0.0, 1.0);
         } else
         {
-        out_color = vec4(0.2*color, 0.4*color, 0.8*color, 1.0);
+        out_color = clr_vec;
         }
     } else if (xy.y > 539 && xy.y < 541)
     {   
@@ -218,19 +249,19 @@ void main()
             out_color = vec4(1.0, 0.0, 0.0, 1.0);
         } else
         {
-        out_color = vec4(0.2*color, 0.4*color, 0.8*color, 1.0);
+        out_color = clr_vec;
         }
     } else 
     {
-        out_color = vec4(0.2*color, 0.4*color, 0.8*color, 1.0);
+        out_color = clr_vec;
     }
-
 }
 """
 
 # initializing glfw library
 if not glfw.init():
     raise Exception("glfw can not be initialized!")
+
 
 # creating the window
 window = glfw.create_window(int(xmax), int(ymax), "My OpenGL window", None, None)
@@ -240,7 +271,7 @@ if not window:
     glfw.terminate()
     raise Exception("glfw window can not be created!")
 
-# set window's position on screen
+# set window's position on screen 34 is height of window top bar
 glfw.set_window_pos(window, 0, 34)
 glfw.make_context_current(window)
 
@@ -272,8 +303,9 @@ while not glfw.window_should_close(window):
                      -1.0, -1111111111.0, 0.0,  # vertex 3 position
                      xmax, ymax,  # width and height of glfw window
                      center_x, center_y, zoom,  # complex coordinate of center of complex plane, level of zoom
-                     wx, wy]  # width and height of complex plane
-
+                     wx, wy, # width and height of complex plane
+                     maxitr, brightness] # maximum iteration for mandelbrot iteration
+    # print(maxitr)
     shader_inputs = np.array(shader_inputs, dtype=np.float32)
     VBO = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, VBO)
@@ -292,8 +324,8 @@ while not glfw.window_should_close(window):
     glVertexAttribPointer(center_n_zoom, 3, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(44))
     glEnableVertexAttribArray(center_n_zoom)
 
-    wx_wy = glGetAttribLocation(shader, "wx_wy")
-    glVertexAttribPointer(wx_wy, 2, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(56))
+    wx_wy = glGetAttribLocation(shader, "wx_wy_maxitr")
+    glVertexAttribPointer(wx_wy, 4, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(56))
     glEnableVertexAttribArray(wx_wy)
 
     # game loop
@@ -311,6 +343,7 @@ while not glfw.window_should_close(window):
 
     toc = timeit.default_timer()  # frame timer end
 
+
     # calculate frame time
     frame_times[0] += toc - tic
     frame_times[1] += 1
@@ -321,4 +354,8 @@ while not glfw.window_should_close(window):
         frame_times[0], frame_times[1] = 0, 0
 
 # terminate glfw, free up allocated resources
+
 glfw.terminate()
+to_write = f'{center_x} \n {center_y} \n {zoom}'
+file1.write(to_write)
+file1.close()
